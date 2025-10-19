@@ -9,22 +9,22 @@ import (
 
 func main() {
 
-	ln, _ := net.Listen("tcp", ":6379")
+	ln, _ := net.Listen("tcp", ":6379") // Listener
 
 	for {
 		conn, _ := ln.Accept()
-		go handleConnection(conn)
+		go handleConnection(conn) // Go Routines for async clients
 	}
 }
 
 func handleConnection(conn net.Conn) {
-	defer conn.Close()
+	defer conn.Close() // Close connection after its done its purpose
 	conn.Write([]byte("Connection established"))
 	fmt.Printf("New connection established from %s to %s\n", conn.RemoteAddr(), conn.LocalAddr())
 
-	store := make(map[string]string)
+	store := make(map[string]string) // Redis in-memory store
 
-	reader := bufio.NewReader(conn)
+	reader := bufio.NewReader(conn) // Read commands
 
 	for {
 		line, err := reader.ReadString('\n')
@@ -44,7 +44,7 @@ func handleConnection(conn net.Conn) {
 		case "PING":
 			conn.Write([]byte("+PONG\r\n"))
 		case "SET":
-			if len(parts) < 3 {
+			if len(parts) < 3 { // Invalid number of arguements
 				conn.Write([]byte(fmt.Sprintf("Wrong number of args, expected: 2, got: %d", len(parts)-1)))
 				continue
 			}
@@ -53,13 +53,13 @@ func handleConnection(conn net.Conn) {
 			store[key] = value
 			conn.Write([]byte("Stored"))
 		case "GET":
-			if len(parts) < 2 {
+			if len(parts) < 2 { // Invalid number of arguements
 				conn.Write([]byte(fmt.Sprintf("Wrong number of args, expected: 1, got: %d", len(parts)-1)))
 				continue
 			}
 			key := parts[1]
 			value, ok := store[key]
-			if !ok {
+			if !ok { // Check if value exists for the key
 				conn.Write([]byte("$-1\r\n"))
 			} else {
 				conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)))
